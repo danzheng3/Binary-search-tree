@@ -15,21 +15,22 @@ int delete(Tnode **root, int key);*/
 
 
 int main(int argc, char* argv[]) {
-    if (argc != 4) {
-        return EXIT_FAILURE;
-    }
-
     char* option = argv[1];
-    char* operations_input_file = argv[2];
-    char* tree_output_file = argv[3];
-
-    FILE *inputFile = fopen(operations_input_file, "rb");
-    if(inputFile==NULL) {
-        printf("-1\n");
-        return EXIT_FAILURE;
-    }
-
+    
     if (strcmp(option, "-b") == 0) {
+
+        if (argc != 4) {
+        return EXIT_FAILURE;
+        }
+        char* operations_input_file = argv[2];
+        char* tree_output_file = argv[3];
+
+        FILE *inputFile = fopen(operations_input_file, "rb");
+        if(inputFile==NULL) {
+            printf("-1\n");
+            return EXIT_FAILURE;
+        }
+
         Tnode *root = NULL;
         int key;
         char op;
@@ -69,11 +70,60 @@ int main(int argc, char* argv[]) {
 
         
     } else if (strcmp(option, "-e") == 0) {
+        if (argc != 3) {
+        printf("-1\n");
+        return EXIT_FAILURE;
+        }
 
+        char* tree_input_file = argv[2];
 
+        FILE *inputFile = fopen(tree_input_file, "rb");
+        if(inputFile==NULL) {
+            printf("-1\n");
+            return EXIT_FAILURE;
+        }
+
+        Tnode *root = NULL;
+        int key;
+        unsigned char flag;
+
+        while (fread(&key, sizeof(int), 1, inputFile) == 1 && fread(&flag, sizeof(unsigned char), 1, inputFile) == 1) {
+            Tnode *node = (Tnode *)malloc(sizeof(Tnode));
+            node->key = key;
+            node->balance = 0;
+            node->left = NULL;
+            node->right = NULL;
+
+            if (flag & 0x02) {
+                node->left = root;
+                root = node;
+            } else if (flag & 0x01) {
+                node->right = root;
+                root = node;
+            } else {
+                free(node);
+            }
+        }
+
+        fclose(inputFile);
+
+        int isValidInput = (root != NULL) ? 1 : 0;
+        int isBST = isValidBST(root, HBT_MIN, HBT_MAX);
+        int isHeightBalance = isHeightBalanced(root);
+
+        printf("%d,%d,%d\n", isValidInput, isBST, isHeightBalance);
+
+        freeTree(root);
+        return EXIT_SUCCESS;
+
+    } else {
+        printf("-1\n");
+        return EXIT_FAILURE;
     }
+
     return EXIT_SUCCESS;
-} 
+}
+
 
 // Free the memory allocated for the tree (recursive)
 void freeTree(Tnode *node) {
