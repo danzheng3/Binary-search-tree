@@ -2,16 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "pa3.h"
 
-/*
-void leftRotate(Tnode **node);
-void rightRotate(Tnode **node);
-void doubleLeftRotate(Tnode **node);
-void doubleRightRotate(Tnode **node);
-int getHeight(Tnode *node);
-int getBalance(Tnode *node);
-int insert(Tnode **root, int key);
-int delete(Tnode **root, int key);*/
+
 
 
 int main(int argc, char* argv[]) {
@@ -38,14 +31,12 @@ int main(int argc, char* argv[]) {
         while (fread(&key, sizeof(int), 1, inputFile)==1 && fread(&op, sizeof(char), 1, inputFile)==1) {
             if (op=='i') {
                 if(!insert(&root,key)) {
-                    printf("O\n");
-                    break;
+                  
 
                 }
             } else if (op=='d') {
-                if(!delete(&root,key)) {
-                    printf("O\n");
-                    break;
+                if(!deleted(&root,key)) {
+                    //must remove these
                 }
             }
         }
@@ -73,59 +64,81 @@ int main(int argc, char* argv[]) {
         if (argc != 3) {
         printf("-1\n");
         return EXIT_FAILURE;
-        }
-
-        char* tree_input_file = argv[2];
-
-        FILE *inputFile = fopen(tree_input_file, "rb");
-        if(inputFile==NULL) {
-            printf("-1\n");
-            return EXIT_FAILURE;
-        }
-
-        Tnode *root = NULL;
-        int key;
-        unsigned char flag;
-
-        while (fread(&key, sizeof(int), 1, inputFile) == 1 && fread(&flag, sizeof(unsigned char), 1, inputFile) == 1) {
-            Tnode *node = (Tnode *)malloc(sizeof(Tnode));
-            node->key = key;
-            node->balance = 0;
-            node->left = NULL;
-            node->right = NULL;
-
-            if (flag & 0x02) {
-                node->left = root;
-                root = node;
-            } else if (flag & 0x01) {
-                node->right = root;
-                root = node;
-            } else {
-                free(node);
-            }
-        }
-
-        fclose(inputFile);
-
-        int isValidInput = (root != NULL) ? 1 : 0;
-        int isBST = isValidBST(root, HBT_MIN, HBT_MAX);
-        int isHeightBalance = isHeightBalanced(root);
-
-        printf("%d,%d,%d\n", isValidInput, isBST, isHeightBalance);
-
-        freeTree(root);
-        return EXIT_SUCCESS;
-
-    } else {
-        printf("-1\n");
-        return EXIT_FAILURE;
     }
 
-    return EXIT_SUCCESS;
+    char* tree_input_file = argv[2];
+    return readTreeFromFile(tree_input_file);
+
+
+    
+    }
+
 }
 
+int readTreeFromFile(const char* filename) {
+    FILE* file = fopen(filename, "rb");
+    if (file == NULL) {
+        return -1; // 
+    }
 
-// Free the memory allocated for the tree (recursive)
+    int isValidFile = 0;
+    int isBST = 0;
+    int isheightBalanced = 0;
+
+    Tnode* root = NULL;
+    Tnode* currentNode = NULL;
+    int key;
+    char branchPattern;
+
+    while (fread(&key, sizeof(int), 1, file) == 1 && fread(&branchPattern, sizeof(char), 1, file) == 1) {
+        Tnode* newNode = (Tnode*)malloc(sizeof(Tnode));
+        newNode->key = key;
+        newNode->left = NULL;
+        newNode->right = NULL;
+
+        if (root == NULL) {
+            root = newNode;
+            currentNode = newNode;
+        } else {
+            while (1) {
+                if (branchPattern & 0x01) { // Left child exists
+                    if (currentNode->left == NULL) {
+                        currentNode->left = newNode;
+                        break;
+                    } else {
+                        currentNode = currentNode->left;
+                    }
+                } else { // Left child is NULL
+                    if (currentNode->right == NULL) {
+                        currentNode->right = newNode;
+                        break;
+                    } else {
+                        currentNode = currentNode->right;
+                    }
+                }
+                branchPattern >>= 1;
+            }
+        }
+    }
+
+    if (feof(file)) {
+        isValidFile = 1;
+        isBST = isValidBST(root, HBT_MIN, HBT_MAX);
+        isheightBalanced = isHeightBalanced(root);
+    }
+
+    fclose(file);
+    freeTree(root);
+
+    printf("%d,%d,%d\n", isValidFile, isBST, isheightBalanced);
+
+    if (isValidFile == 1) {
+        return EXIT_SUCCESS;
+    } else {
+        return EXIT_FAILURE;
+    }
+}
+
 void freeTree(Tnode *node) {
   if (node == NULL) {
     return;
@@ -134,8 +147,6 @@ void freeTree(Tnode *node) {
   freeTree(node->right);
   free(node);
 }
-
-// Pre-order traversal and write to the output file
 
 void writeNodeToFile(Tnode *node, FILE *outputFile) {
     int key = node->key;
@@ -151,13 +162,9 @@ void writeNodeToFile(Tnode *node, FILE *outputFile) {
     if (node->right != NULL)
         ch |= 0x01;
 
-    // Write the key as an int to the output file
     fwrite(&key, sizeof(int), 1, outputFile);
-
-    // Write the char with branch information to the output file
     fwrite(&ch, sizeof(unsigned char), 1, outputFile);
 
-    // Recursively write the left and right child nodes
     if (node->left != NULL)
         writeNodeToFile(node->left, outputFile);
     if (node->right != NULL)
@@ -168,7 +175,6 @@ void preOrderTraversal(Tnode *node, FILE *outputFile) {
     if (node == NULL || outputFile == NULL)
         return;
 
-    // Write the nodes in pre-order traversal to the output file
     writeNodeToFile(node, outputFile);
 }
 

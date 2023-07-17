@@ -1,122 +1,161 @@
 #include "hbt.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "pa3.h"
 
 int insert(Tnode **root, int key);
-int delete(Tnode **root, int key);
+int deleted(Tnode **root, int key);
+Tnode* getMinNode(Tnode* node);
+Tnode* createNode(int key);
+Tnode* getMaxNode(Tnode* node);
 
 int insert(Tnode **root, int key) {
   if (*root == NULL) {
-    // Create a new node and insert the key
-    Tnode *newNode = (Tnode *)malloc(sizeof(Tnode));
-    if (newNode == NULL) {
-      return 0; // Memory allocation failure
-    }
-
-    newNode->key = key;
-    newNode->balance = 0;
-    newNode->left = NULL;
-    newNode->right = NULL;
-
-    *root = newNode;
+    *root = createNode(key);
     return 1;
   }
+//need to fix rotations with somewhere to go (left, right rotation end)
 
+  int inserted;
   if (key < (*root)->key) {
-    // Go left to insert the key (allowing duplicate keys to the left)
-    if (!insert(&(*root)->left, key)) {
-      return 0;
+    inserted = insert(&(*root)->left, key);
+    if (inserted) {
+      // Check if the left subtree is imbalanced
+      if (getBalance(*root) == 2) {
+        if (key < (*root)->left->key) {
+          // Case 1: Left-Left
+          rightRotate(root);
+        } else {
+          // Case 3: Left-Right
+          doubleRightRotate(root);
+        }
+      }
+    }
+  } else if (key > (*root)->key) {
+    inserted = insert(&(*root)->right, key);
+    if (inserted) {
+      // Check if the right subtree is imbalanced
+      if (getBalance(*root) == -2) {
+        if (key > (*root)->right->key) {
+          // Case 2: Right-Right
+          leftRotate(root);
+        } else {
+          // Case 4: Right-Left
+          doubleLeftRotate(root);
+        }
+      }
     }
   } else {
-    // Go right to insert the key
-    if (!insert(&(*root)->right, key)) {
-      return 0;
+    // Duplicate key, go left
+    inserted = insert(&(*root)->left, key);
+    if (inserted) {
+      // Check if the left subtree is imbalanced
+      if (getBalance(*root) == 2) {
+        if (key < (*root)->left->key) {
+          // Case 1: Left-Left
+          rightRotate(root);
+        } else {
+          // Case 3: Left-Right
+          doubleRightRotate(root);
+        }
+      }
     }
   }
 
-  // Update balance factor
-  (*root)->balance = getBalance(*root);
-
-  // Perform rotations if necessary
-  if ((*root)->balance > 1) {
-    if (key < (*root)->left->key) {
-      rightRotate(root);
-    } else {
-      doubleRightRotate(root);
-    }
-  } else if ((*root)->balance < -1) {
-    if (key > (*root)->right->key) {
-      leftRotate(root);
-    } else {
-      doubleLeftRotate(root);
-    }
-  }
-
-  return 1;
+  return inserted;
 }
 
-int delete(Tnode **root, int key) {
+
+
+int deleted(Tnode **root, int key) {
   if (*root == NULL) {
     return 0; // Key not found
   }
 
+  int isDeleted;
   if (key < (*root)->key) {
-    // Go left to delete the key
-    if (!delete(&(*root)->left, key)) {
-      return 0;
+    isDeleted = deleted(&(*root)->left, key);
+    if (isDeleted) {
+      if (getBalance(*root) == -2) {
+        if (getBalance((*root)->right) <= 0) {
+          // Case 2: Right-Right
+          leftRotate(root);
+        } else {
+          // Case 4: Right-Left
+          doubleLeftRotate(root);
+        }
+      }
     }
   } else if (key > (*root)->key) {
-    // Go right to delete the key
-    if (!delete(&(*root)->right, key)) {
-      return 0;
+    isDeleted = deleted(&(*root)->right, key);
+    if (isDeleted) {
+      // Check if the left subtree is imbalanced
+      if (getBalance(*root) == 2) {
+        if (getBalance((*root)->left) >= 0) {
+          // Case 1: Left-Left
+          rightRotate(root);
+        } else {
+          // Case 3: Left-Right
+          doubleRightRotate(root);
+        }
+      }
     }
   } else {
-    // Node with matching key found, perform deletion
-    Tnode *temp;
-    if ((*root)->left == NULL || (*root)->right == NULL) {
-      // Node has one child or no child
-      temp = (*root)->left ? (*root)->left : (*root)->right;
-      if (temp == NULL) {
-        // No child
-        temp = *root;
-        *root = NULL;
+    isDeleted = 1;
+    Tnode *temp = *root;
+    if ((*root)->left == NULL && (*root)->right == NULL) {
+      // Node is a leaf
+      *root = NULL;
+      free(temp);
+    } else if ((*root)->left != NULL && (*root)->right != NULL) {
+      // Node has two children
+      temp = getMaxNode((*root)->left);
+      (*root)->key = temp->key;
+      deleted(&(*root)->left, temp->key);
+      if (getBalance(*root) == 2) {
+        if (getBalance((*root)->left) >= 0) {
+
+          rightRotate(root);
+        } else {
+          doubleRightRotate(root);
+        }
+      }
+    } else {
+      // Node has only one child
+      if ((*root)->left != NULL) {
+        *root = (*root)->left;
       } else {
-        // One child
-        **root = *temp;
+        *root = (*root)->right;
       }
       free(temp);
-    } else {
-      // Node has two children, find immediate predecessor
-      temp = (*root)->left;
-      while (temp->right != NULL) {
-        temp = temp->right;
-      }
-      (*root)->key = temp->key;
-      delete(&(*root)->left, temp->key);
     }
   }
 
-  if (*root == NULL) {
-    return 1; // Key deleted successfully
-  }
-
-  // Update balance factor
-  (*root)->balance = getBalance(*root);
-
-  // Perform rotations if necessary
-  if ((*root)->balance > 1) {
-    if (getBalance((*root)->left) >= 0) {
-      rightRotate(root);
-    } else {
-      doubleRightRotate(root);
-    }
-  } else if ((*root)->balance < -1) {
-    if (getBalance((*root)->right) <= 0) {
-      leftRotate(root);
-    } else {
-      doubleLeftRotate(root);
-    }
-  }
-
-  return 1;
+  return isDeleted;
 }
+
+Tnode* getMaxNode(Tnode* node) {
+  Tnode* current = node;
+  while (current->right != NULL) {
+    current = current->right;
+  }
+  return current;
+}
+
+
+Tnode* createNode(int key) {
+  Tnode* newNode = (Tnode*)malloc(sizeof(Tnode));
+  newNode->key = key;
+  newNode->left = NULL;
+  newNode->right = NULL;
+  return newNode;
+}
+
+Tnode* getMinNode(Tnode* node) {
+  Tnode* current = node;
+  while (current->left != NULL) {
+    current = current->left;
+  }
+  return current;
+}
+

@@ -1,6 +1,7 @@
 #include "hbt.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "pa3.h"
 
 void leftRotate(Tnode **node);
 void rightRotate(Tnode **node);
@@ -27,23 +28,50 @@ int getBalance(Tnode *node) {
   return getHeight(node->left) - getHeight(node->right);
 }
 
-// Left rotation
+/* Left rotation
 void leftRotate(Tnode **node) {
   Tnode *current = *node;
   Tnode *newRoot = current->right;
   current->right = newRoot->left;
   newRoot->left = current;
   *node = newRoot;
+} */
+
+// Left rotation
+void leftRotate(Tnode **node) {
+  Tnode *current = *node;
+  if (current == NULL || current->right == NULL) {
+    return; // Cannot perform rotation
+  }
+  Tnode *newRoot = current->right;
+  current->right = newRoot->left;
+  newRoot->left = current;
+  *node = newRoot;
 }
 
+
 // Right rotation
-void rightRotate(Tnode **node) {
+/*void rightRotate(Tnode **node) {
   Tnode *current = *node;
   Tnode *newRoot = current->left;
   current->left = newRoot->right;
   newRoot->right = current;
   *node = newRoot;
+}*/
+
+// Right rotation
+void rightRotate(Tnode **node) {
+  Tnode *current = *node;
+  if (current == NULL || current->left == NULL) {
+    return; // Cannot perform rotation
+  }
+  Tnode *newRoot = current->left;
+  current->left = newRoot->right;
+  newRoot->right = current;
+  *node = newRoot;
 }
+
+
 
 // Double left rotation (left-right rotation)
 void doubleLeftRotate(Tnode **node) {
