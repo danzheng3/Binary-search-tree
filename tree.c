@@ -3,159 +3,93 @@
 #include <stdio.h>
 #include "pa3.h"
 
-int insert(Tnode **root, int key);
-int deleted(Tnode **root, int key);
+Tnode* insert(Tnode *root, int key);
+Tnode* deleteNode(Tnode* root, int key);
 Tnode* getMinNode(Tnode* node);
 Tnode* createNode(int key);
 Tnode* getMaxNode(Tnode* node);
 
-int insert(Tnode **root, int key) {
-  if (*root == NULL) {
-    *root = createNode(key);
-    return 1;
-  }
-//need to fix rotations with somewhere to go (left, right rotation end)
+Tnode* insert(Tnode* root, int key) {
+    if (root == NULL) {
+        return createNode(key);
+    }
 
-  int inserted;
-  if (key < (*root)->key) {
-    inserted = insert(&(*root)->left, key);
-    if (inserted) {
-      // Check if the left subtree is imbalanced
-      if (getBalance(*root) == 2) {
-        if (key < (*root)->left->key) {
-          // Case 1: Left-Left
-          rightRotate(root);
-        } else {
-          // Case 3: Left-Right
-          doubleRightRotate(root);
-        }
-      }
+    if (key <= root->key) {
+        root->left = insert(root->left, key);
+    } else if (key > root->key) {
+        root->right = insert(root->right, key);
     }
-  } else if (key > (*root)->key) {
-    inserted = insert(&(*root)->right, key);
-    if (inserted) {
-      // Check if the right subtree is imbalanced
-      if (getBalance(*root) == -2) {
-        if (key > (*root)->right->key) {
-          // Case 2: Right-Right
-          leftRotate(root);
-        } else {
-          // Case 4: Right-Left
-          doubleLeftRotate(root);
-        }
-      }
-    }
-  } else {
-    // Duplicate key, go left
-    inserted = insert(&(*root)->left, key);
-    if (inserted) {
-      // Check if the left subtree is imbalanced
-      if (getBalance(*root) == 2) {
-        if (key < (*root)->left->key) {
-          // Case 1: Left-Left
-          rightRotate(root);
-        } else {
-          // Case 3: Left-Right
-          doubleRightRotate(root);
-        }
-      }
-    }
-  }
 
-  return inserted;
+    // Update the balance factor of the current node
+    root->balance = getHeight(root->left) - getHeight(root->right);
+
+    // Rebalance the tree if necessary
+    return balanceTree(root);
+}
+
+Tnode* findMinNode(Tnode* node) {
+    if (node->left == NULL) {
+        return node;
+    }
+    return findMinNode(node->left);
 }
 
 
-
-int deleted(Tnode **root, int key) {
-  if (*root == NULL) {
-    return 0; // Key not found
-  }
-
-  int isDeleted;
-  if (key < (*root)->key) {
-    isDeleted = deleted(&(*root)->left, key);
-    if (isDeleted) {
-      if (getBalance(*root) == -2) {
-        if (getBalance((*root)->right) <= 0) {
-          // Case 2: Right-Right
-          leftRotate(root);
-        } else {
-          // Case 4: Right-Left
-          doubleLeftRotate(root);
-        }
-      }
+// Function to find the node with the maximum key in a subtree
+Tnode* findMaxNode(Tnode* node) {
+    if (node->right == NULL) {
+        return node;
     }
-  } else if (key > (*root)->key) {
-    isDeleted = deleted(&(*root)->right, key);
-    if (isDeleted) {
-      // Check if the left subtree is imbalanced
-      if (getBalance(*root) == 2) {
-        if (getBalance((*root)->left) >= 0) {
-          // Case 1: Left-Left
-          rightRotate(root);
-        } else {
-          // Case 3: Left-Right
-          doubleRightRotate(root);
-        }
-      }
-    }
-  } else {
-    isDeleted = 1;
-    Tnode *temp = *root;
-    if ((*root)->left == NULL && (*root)->right == NULL) {
-      // Node is a leaf
-      *root = NULL;
-      free(temp);
-    } else if ((*root)->left != NULL && (*root)->right != NULL) {
-      // Node has two children
-      temp = getMaxNode((*root)->left);
-      (*root)->key = temp->key;
-      deleted(&(*root)->left, temp->key);
-      if (getBalance(*root) == 2) {
-        if (getBalance((*root)->left) >= 0) {
+    return findMaxNode(node->right);
+}
 
-          rightRotate(root);
-        } else {
-          doubleRightRotate(root);
-        }
-      }
+
+// Function to perform the deletion of a node with the given key in the AVL tree
+Tnode* deleteNode(Tnode* root, int key) {
+    if (root == NULL) {
+        return root; // Key not found, return the current root
+    }
+
+    if (key < root->key) {
+        root->left = deleteNode(root->left, key);
+    } else if (key > root->key) {
+        root->right = deleteNode(root->right, key);
     } else {
-      // Node has only one child
-      if ((*root)->left != NULL) {
-        *root = (*root)->left;
-      } else {
-        *root = (*root)->right;
-      }
-      free(temp);
+        // Key found, perform deletion
+
+        if (root->left == NULL || root->right == NULL) {
+            // Node with one child or no child
+            Tnode* temp = root->left ? root->left : root->right;
+
+            free(root);
+            return temp;
+        } else {
+            // Node with two children
+            Tnode* predecessor = findMaxNode(root->left);
+            root->key = predecessor->key;
+            root->left = deleteNode(root->left, predecessor->key);
+        }
     }
-  }
 
-  return isDeleted;
-}
+    root->balance = getHeight(root->left) - getHeight(root->right);
 
-Tnode* getMaxNode(Tnode* node) {
-  Tnode* current = node;
-  while (current->right != NULL) {
-    current = current->right;
-  }
-  return current;
+    // Rebalance the tree if necessary
+    return balanceTree(root);
 }
 
 
+
+
+// Function to create a new node with the given key
 Tnode* createNode(int key) {
-  Tnode* newNode = (Tnode*)malloc(sizeof(Tnode));
-  newNode->key = key;
-  newNode->left = NULL;
-  newNode->right = NULL;
-  return newNode;
-}
+    Tnode* newNode = (Tnode*)malloc(sizeof(Tnode));
+    if (newNode == NULL) {
+        exit(EXIT_FAILURE);
+    }
 
-Tnode* getMinNode(Tnode* node) {
-  Tnode* current = node;
-  while (current->left != NULL) {
-    current = current->left;
-  }
-  return current;
+    newNode->key = key;
+    newNode->balance = 0;
+    newNode->left = NULL;
+    newNode->right = NULL;
+    return newNode;
 }
-

@@ -30,14 +30,9 @@ int main(int argc, char* argv[]) {
 
         while (fread(&key, sizeof(int), 1, inputFile)==1 && fread(&op, sizeof(char), 1, inputFile)==1) {
             if (op=='i') {
-                if(!insert(&root,key)) {
-                  
-
-                }
+                root=insert(root,key);
             } else if (op=='d') {
-                if(!deleted(&root,key)) {
-                    //must remove these
-                }
+                root=deleteNode(root,key);
             }
         }
 
@@ -177,4 +172,3 @@ void preOrderTraversal(Tnode *node, FILE *outputFile) {
 
     writeNodeToFile(node, outputFile);
 }
-

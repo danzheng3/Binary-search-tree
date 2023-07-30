@@ -3,84 +3,82 @@
 #include <stdlib.h>
 #include "pa3.h"
 
-void leftRotate(Tnode **node);
-void rightRotate(Tnode **node);
-void doubleLeftRotate(Tnode **node);
-void doubleRightRotate(Tnode **node);
-int getHeight(Tnode *node);
-int getBalance(Tnode *node);
+Tnode* rotateRight(Tnode* node);
+Tnode* rotateLeft(Tnode* node);
+Tnode* balanceTree(Tnode* node);
+int getHeight(Tnode* node);
+int updateBalance(Tnode* node);
+Tnode* updateBalancesAndBalanceTree(Tnode* node);
 
-// Get the height of a node (recursive)
-int getHeight(Tnode *node) {
-  if (node == NULL) {
-    return -1; // Empty tree has height -1
-  }
-  int leftHeight = getHeight(node->left);
-  int rightHeight = getHeight(node->right);
-  return 1 + (leftHeight > rightHeight ? leftHeight : rightHeight);
+
+// Function to perform a right rotation on the given node
+Tnode* rotateRight(Tnode* node) {
+    Tnode* newRoot = node->left;
+    node->left = newRoot->right;
+    newRoot->right = node;
+    return newRoot;
 }
 
-// Get the balance factor of a node
-int getBalance(Tnode *node) {
-  if (node == NULL) {
-    return 0; // Empty tree has balance 0
-  }
-  return getHeight(node->left) - getHeight(node->right);
-}
-
-/* Left rotation
-void leftRotate(Tnode **node) {
-  Tnode *current = *node;
-  Tnode *newRoot = current->right;
-  current->right = newRoot->left;
-  newRoot->left = current;
-  *node = newRoot;
-} */
-
-// Left rotation
-void leftRotate(Tnode **node) {
-  Tnode *current = *node;
-  if (current == NULL || current->right == NULL) {
-    return; // Cannot perform rotation
-  }
-  Tnode *newRoot = current->right;
-  current->right = newRoot->left;
-  newRoot->left = current;
-  *node = newRoot;
+// Function to perform a left rotation on the given node
+Tnode* rotateLeft(Tnode* node) {
+    Tnode* newRoot = node->right;
+    node->right = newRoot->left;
+    newRoot->left = node;
+    return newRoot;
 }
 
 
-// Right rotation
-/*void rightRotate(Tnode **node) {
-  Tnode *current = *node;
-  Tnode *newRoot = current->left;
-  current->left = newRoot->right;
-  newRoot->right = current;
-  *node = newRoot;
-}*/
-
-// Right rotation
-void rightRotate(Tnode **node) {
-  Tnode *current = *node;
-  if (current == NULL || current->left == NULL) {
-    return; // Cannot perform rotation
-  }
-  Tnode *newRoot = current->left;
-  current->left = newRoot->right;
-  newRoot->right = current;
-  *node = newRoot;
+// Function to balance the AVL tree after insertion or deletion
+Tnode* balanceTree(Tnode* node) {
+    if (node->balance < -1) {
+        if (node->right->balance > 0) {
+            node->right = rotateRight(node->right);
+        }
+        node = rotateLeft(node);
+    } else if (node->balance > 1) {
+        if (node->left->balance < 0) {
+            node->left = rotateLeft(node->left);
+        }
+        node = rotateRight(node);
+    }
+    return node;
 }
 
-
-
-// Double left rotation (left-right rotation)
-void doubleLeftRotate(Tnode **node) {
-  leftRotate(&(*node)->left);
-  rightRotate(node);
+// Function to find the height of a node
+int getHeight(Tnode* node) {
+    if (node == NULL) {
+        return 0;
+    }
+    int leftHeight = getHeight(node->left);
+    int rightHeight = getHeight(node->right);
+    return (leftHeight > rightHeight ? leftHeight : rightHeight) + 1;
 }
 
-// Double right rotation (right-left rotation)
-void doubleRightRotate(Tnode **node) {
-  rightRotate(&(*node)->right);
-  leftRotate(node);
+int updateBalance(Tnode* node) {
+    int leftHeight = getHeight(node->left);
+    int rightHeight = getHeight(node->right);
+    node->balance = leftHeight - rightHeight;
+    return node->balance;
 }
+
+// Function to update balances in the entire BST and balance the tree if needed
+Tnode* updateBalancesAndBalanceTree(Tnode* node) {
+    if (node == NULL) {
+        return NULL;
+    }
+
+    // Update balances of left and right subtrees
+    node->left = updateBalancesAndBalanceTree(node->left);
+    node->right = updateBalancesAndBalanceTree(node->right);
+
+    // Update the balance of the current node
+    int newBalance = updateBalance(node);
+
+    // If the tree is unbalanced, balance it
+    if (newBalance < -1 || newBalance > 1) {
+        node = balanceTree(node);
+    }
+
+    return node;
+}
+
