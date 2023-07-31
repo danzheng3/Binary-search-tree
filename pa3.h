@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include "hbt.h"
 
-int insert(Tnode **root, int key);
-int deleted(Tnode **root, int key);
+Tnode* insert(Tnode *root, int key);
+Tnode* deleteNode(Tnode* root, int key);
+
+void printNodePreOrder(Tnode *node);
 
 void preOrderTraversal(Tnode *node, FILE *outputFile);
 void writeNodeToFile(Tnode *node, FILE *outputFile);
@@ -15,12 +17,10 @@ Tnode* createNode(int key);
 Tnode* getMaxNode(Tnode* node);
 int readTreeFromFile(const char* filename);
 
-void leftRotate(Tnode **node);
-void rightRotate(Tnode **node);
-void doubleLeftRotate(Tnode **node);
-void doubleRightRotate(Tnode **node);
-int getHeight(Tnode *node);
-int getBalance(Tnode *node);
-
-int isValidBST(Tnode *node, int min, int max);
+Tnode* rotateRight(Tnode* node);
+Tnode* rotateLeft(Tnode* node);
+Tnode* balanceTree(Tnode* node);
+int getHeight(Tnode* node);
 int isHeightBalanced(Tnode *node);
+int isValidBST(Tnode *node, int min, int max);
+Tnode* updateBalancesAndBalanceTree(Tnode *node);

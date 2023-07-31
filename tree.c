@@ -8,6 +8,8 @@ Tnode* deleteNode(Tnode* root, int key);
 Tnode* getMinNode(Tnode* node);
 Tnode* createNode(int key);
 Tnode* getMaxNode(Tnode* node);
+void printNodePreOrder(Tnode *node);
+
 
 Tnode* insert(Tnode* root, int key) {
     if (root == NULL) {
@@ -20,10 +22,8 @@ Tnode* insert(Tnode* root, int key) {
         root->right = insert(root->right, key);
     }
 
-    // Update the balance factor of the current node
     root->balance = getHeight(root->left) - getHeight(root->right);
 
-    // Rebalance the tree if necessary
     return balanceTree(root);
 }
 
@@ -35,7 +35,6 @@ Tnode* findMinNode(Tnode* node) {
 }
 
 
-// Function to find the node with the maximum key in a subtree
 Tnode* findMaxNode(Tnode* node) {
     if (node->right == NULL) {
         return node;
@@ -47,7 +46,7 @@ Tnode* findMaxNode(Tnode* node) {
 // Function to perform the deletion of a node with the given key in the AVL tree
 Tnode* deleteNode(Tnode* root, int key) {
     if (root == NULL) {
-        return root; // Key not found, return the current root
+        return NULL; // Key not found, return the current root
     }
 
     if (key < root->key) {
@@ -67,6 +66,9 @@ Tnode* deleteNode(Tnode* root, int key) {
             // Node with two children
             Tnode* predecessor = findMaxNode(root->left);
             root->key = predecessor->key;
+            predecessor->key =913;
+            //printf("predecessor: %d\n", root->key);
+            
             root->left = deleteNode(root->left, predecessor->key);
         }
     }
@@ -92,4 +94,25 @@ Tnode* createNode(int key) {
     newNode->left = NULL;
     newNode->right = NULL;
     return newNode;
+}
+
+void printNodePreOrder(Tnode *node) {
+    if (node == NULL)
+        return;
+
+    int key = node->key;
+    int childrenFlag = 0;
+
+    // Set the left child flag
+    if (node->left != NULL)
+        childrenFlag |= 0x02;
+
+    // Set the right child flag
+    if (node->right != NULL)
+        childrenFlag |= 0x01;
+
+    printf("%d %d\n", key, childrenFlag);
+
+    printNodePreOrder(node->left);
+    printNodePreOrder(node->right);
 }

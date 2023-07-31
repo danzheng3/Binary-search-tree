@@ -4,8 +4,9 @@
 #include <string.h>
 #include "pa3.h"
 
-
-
+void insertNode(Tnode** root, int key, unsigned char branchPattern);
+Tnode* readBinaryFormat(FILE* inputFile);
+void decodeBinaryPattern(char pattern, int* hasLeftChild, int* hasRightChild);
 
 int main(int argc, char* argv[]) {
     char* option = argv[1];
@@ -30,9 +31,19 @@ int main(int argc, char* argv[]) {
 
         while (fread(&key, sizeof(int), 1, inputFile)==1 && fread(&op, sizeof(char), 1, inputFile)==1) {
             if (op=='i') {
+                //printf("inserted %d\n", key);
                 root=insert(root,key);
+                updateBalancesAndBalanceTree(root);
+                //printf("new tree:\n");
+                //printNodePreOrder(root);
+                //printf("\n");
             } else if (op=='d') {
+                //printf("deleted %d\n", key);
                 root=deleteNode(root,key);
+                updateBalancesAndBalanceTree(root);
+                //printf("new tree:\n");
+                //printNodePreOrder(root);
+                //printf("\n");
             }
         }
 
@@ -60,78 +71,76 @@ int main(int argc, char* argv[]) {
         printf("-1\n");
         return EXIT_FAILURE;
     }
+    int fileOpen;
 
-    char* tree_input_file = argv[2];
-    return readTreeFromFile(tree_input_file);
+    char* operations_input_file = argv[2];
+    FILE* inputFile = fopen(operations_input_file, "rb");
+    if (inputFile==NULL) {
+        fileOpen=-1;
+        printf("-1,0,0\n");
+        fclose(inputFile);
+        return EXIT_FAILURE;
+    }
+    Tnode* root = readBinaryFormat(inputFile);
+    fileOpen=1;
+    //printNodePreOrder(root);
+    if (root==NULL) {
+        printf("0,0,0\n");
+        fclose(inputFile);
+        freeTree(root);
+        return EXIT_FAILURE;
+    }
+
+    fclose(inputFile);
+    int isBST=isValidBST(root,HBT_MIN,HBT_MAX);
+    int isBalanced= isHeightBalanced(root);
+    freeTree(root);
+
+    printf("%d,%d,%d\n", fileOpen,isBST,isBalanced);
+    return EXIT_SUCCESS;
+
 
 
     
+    } else {
+        return EXIT_FAILURE;
     }
 
 }
 
-int readTreeFromFile(const char* filename) {
-    FILE* file = fopen(filename, "rb");
-    if (file == NULL) {
-        return -1; // 
-    }
+void decodeBinaryPattern(char pattern, int* hasLeftChild, int* hasRightChild) {
+    *hasLeftChild = (pattern & 0x02) ? 1 : 0;
+    *hasRightChild = (pattern & 0x01) ? 1 : 0;
+}
 
-    int isValidFile = 0;
-    int isBST = 0;
-    int isheightBalanced = 0;
 
-    Tnode* root = NULL;
-    Tnode* currentNode = NULL;
+Tnode* readBinaryFormat(FILE* inputFile) {
     int key;
-    char branchPattern;
+    char pattern;
 
-    while (fread(&key, sizeof(int), 1, file) == 1 && fread(&branchPattern, sizeof(char), 1, file) == 1) {
-        Tnode* newNode = (Tnode*)malloc(sizeof(Tnode));
-        newNode->key = key;
-        newNode->left = NULL;
-        newNode->right = NULL;
+    /*if (fscanf(inputFile, "%d %c", &key, &pattern) != 2) {
+        printf("hit return null\n");
+        return NULL;
+    }*/
 
-        if (root == NULL) {
-            root = newNode;
-            currentNode = newNode;
-        } else {
-            while (1) {
-                if (branchPattern & 0x01) { // Left child exists
-                    if (currentNode->left == NULL) {
-                        currentNode->left = newNode;
-                        break;
-                    } else {
-                        currentNode = currentNode->left;
-                    }
-                } else { // Left child is NULL
-                    if (currentNode->right == NULL) {
-                        currentNode->right = newNode;
-                        break;
-                    } else {
-                        currentNode = currentNode->right;
-                    }
-                }
-                branchPattern >>= 1;
-            }
-        }
+    if (fread(&key, sizeof(int), 1, inputFile) != 1 || fread(&pattern, sizeof(unsigned char), 1, inputFile) != 1) {
+        return NULL;
     }
 
-    if (feof(file)) {
-        isValidFile = 1;
-        isBST = isValidBST(root, HBT_MIN, HBT_MAX);
-        isheightBalanced = isHeightBalanced(root);
+    int hasLeftChild, hasRightChild;
+    decodeBinaryPattern(pattern, &hasLeftChild, &hasRightChild);
+
+    Tnode* newNode = createNode(key);
+
+    if (hasLeftChild) {
+        newNode->left = readBinaryFormat(inputFile);
     }
 
-    fclose(file);
-    freeTree(root);
-
-    printf("%d,%d,%d\n", isValidFile, isBST, isheightBalanced);
-
-    if (isValidFile == 1) {
-        return EXIT_SUCCESS;
-    } else {
-        return EXIT_FAILURE;
+    if (hasRightChild) {
+        newNode->right = readBinaryFormat(inputFile);
     }
+
+    return newNode;
 }
 
 void freeTree(Tnode *node) {
@@ -143,17 +152,26 @@ void freeTree(Tnode *node) {
   free(node);
 }
 
+void insertNode(Tnode** root, int key, unsigned char branchPattern) {
+    Tnode* newNode = createNode(key);
+    if (branchPattern & 0x01) { 
+        (*root)->left = newNode;
+    } else { 
+        (*root)->right = newNode;
+    }
+}
+
 void writeNodeToFile(Tnode *node, FILE *outputFile) {
     int key = node->key;
     int balance = node->balance;
 
     unsigned char ch = 0;
 
-    // Set the left child flag
+    // left child
     if (node->left != NULL)
         ch |= 0x02;
 
-    // Set the right child flag
+    // right child
     if (node->right != NULL)
         ch |= 0x01;
 
@@ -172,3 +190,4 @@ void preOrderTraversal(Tnode *node, FILE *outputFile) {
 
     writeNodeToFile(node, outputFile);
 }
+

@@ -16,6 +16,7 @@ Tnode* rotateRight(Tnode* node) {
     Tnode* newRoot = node->left;
     node->left = newRoot->right;
     newRoot->right = node;
+    //printf("rotated %d right \n", node->key);
     return newRoot;
 }
 
@@ -23,6 +24,7 @@ Tnode* rotateRight(Tnode* node) {
 Tnode* rotateLeft(Tnode* node) {
     Tnode* newRoot = node->right;
     node->right = newRoot->left;
+    //printf("rotated %d left \n", node->key);
     newRoot->left = node;
     return newRoot;
 }
@@ -35,6 +37,7 @@ Tnode* balanceTree(Tnode* node) {
             node->right = rotateRight(node->right);
         }
         node = rotateLeft(node);
+
     } else if (node->balance > 1) {
         if (node->left->balance < 0) {
             node->left = rotateLeft(node->left);
@@ -57,7 +60,7 @@ int getHeight(Tnode* node) {
 int updateBalance(Tnode* node) {
     int leftHeight = getHeight(node->left);
     int rightHeight = getHeight(node->right);
-    node->balance = leftHeight - rightHeight;
+    node->balance = leftHeight-rightHeight;
     return node->balance;
 }
 
@@ -77,6 +80,9 @@ Tnode* updateBalancesAndBalanceTree(Tnode* node) {
     // If the tree is unbalanced, balance it
     if (newBalance < -1 || newBalance > 1) {
         node = balanceTree(node);
+        //printf("new tree:\n");
+        //printNodePreOrder(node);
+        //printf("\n");
     }
 
     return node;
